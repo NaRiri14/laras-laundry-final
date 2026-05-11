@@ -11,4 +11,11 @@ export default defineConfig({
             refresh: true,
         }),
     ],
+    // Tambahkan ini jika build masih sering timeout/gagal
+    server: {
+        host: '0.0.0.0',
+        hmr: {
+            host: 'localhost',
+        },
+    },
 });
