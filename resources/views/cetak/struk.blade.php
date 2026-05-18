@@ -46,10 +46,8 @@
 <body>
 
     <div class="area-tombol">
-    <a href="{{ route('kasir') }}" class="btn-kembali">← Kembali</a>
-    &nbsp;
-    <button onclick="window.print()" class="btn-kembali">🖨️ Cetak</button>
-</div>
+        <a href="{{ route('kasir') }}" class="btn-kembali">← Kembali ke Kasir</a>
+    </div>
 
     <div id="struk">
 
