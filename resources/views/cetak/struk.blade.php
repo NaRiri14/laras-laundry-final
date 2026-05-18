@@ -10,7 +10,7 @@
             width: 58mm;
             margin: 0;
             padding: 3mm;
-            font-size: 10px;
+            font-size: 13px;
             color: black;
             background: white;
             box-sizing: border-box;
@@ -118,7 +118,7 @@
                         width: 58mm;
                         margin: 0;
                         padding: 3mm;
-                        font-size: 10px;
+                        font-size: 13px;
                         color: black;
                         background: white;
                         box-sizing: border-box;
