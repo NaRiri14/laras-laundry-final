@@ -24,9 +24,6 @@
         .area-tombol {
             text-align: center;
             margin-bottom: 20px;
-            width: 100vw;
-            position: relative;
-            left: -3mm;
         }
 
         .btn-kembali {
@@ -41,20 +38,8 @@
             font-size: 14px;
         }
 
-        /* ✅ SEMUA yang bukan struk disembunyikan saat print */
         @media print {
-            html, body {
-                width: 58mm !important;
-                margin: 0 !important;
-                padding: 0 !important;
-            }
             .area-tombol { display: none !important; }
-            #struk {
-                display: block !important;
-                width: 58mm;
-                padding: 3mm;
-                box-sizing: border-box;
-            }
         }
     </style>
 </head>
@@ -64,7 +49,6 @@
         <a href="{{ route('kasir') }}" class="btn-kembali">← Kembali ke Kasir</a>
     </div>
 
-    {{-- ✅ Wrap semua konten struk dalam div#struk --}}
     <div id="struk">
 
         <div class="text-center">
@@ -105,12 +89,56 @@
             Serahkan struk saat ambil cucian
         </div>
 
-    </div>{{-- end #struk --}}
+    </div>
 
 </body>
 <script>
+    function cetakStruk() {
+        const isiStruk = document.getElementById('struk').innerHTML;
+        const iframe = document.createElement('iframe');
+        iframe.style.position = 'fixed';
+        iframe.style.top = '-9999px';
+        iframe.style.left = '-9999px';
+        iframe.style.width = '58mm';
+        iframe.style.height = '0';
+        document.body.appendChild(iframe);
+
+        const doc = iframe.contentWindow.document;
+        doc.open();
+        doc.write(`
+            <!DOCTYPE html>
+            <html>
+            <head>
+                <style>
+                    @page { size: 58mm auto; margin: 0; }
+                    body {
+                        font-family: 'Courier New', monospace;
+                        width: 58mm;
+                        margin: 0;
+                        padding: 3mm;
+                        font-size: 10px;
+                        color: black;
+                        background: white;
+                        box-sizing: border-box;
+                    }
+                    .text-center { text-align: center; }
+                    .line { border-bottom: 1px dashed #000; margin: 4px 0; }
+                    .bold { font-weight: bold; }
+                </style>
+            </head>
+            <body>${isiStruk}</body>
+            </html>
+        `);
+        doc.close();
+
+        iframe.contentWindow.focus();
+        iframe.contentWindow.print();
+
+        setTimeout(() => document.body.removeChild(iframe), 1000);
+    }
+
     if (new URLSearchParams(window.location.search).get('mode') === 'silent') {
-        window.onload = function() { window.print(); };
+        window.onload = function() { cetakStruk(); };
     }
 </script>
 </html>
