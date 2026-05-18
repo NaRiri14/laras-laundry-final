@@ -4,7 +4,7 @@
     <title>Cetak Struk #{{ $transaksi->id_transaksi }}</title>
     <style>
         @page { size: 58mm auto; margin: 2mm; }
-        body { font-family: 'Courier New', monospace; width: 54mm; margin: 0 auto; padding: 5mm 0; font-size: 10px; } color: black; background: white; }
+        body { font-family: 'Courier New', monospace; width: 54mm; margin: 0 auto; padding: 5mm 0; font-size: 10px; color: black; background: white; }
         .text-center { text-align: center; }
         .line { border-bottom: 1px dashed #000; margin: 5px 0; }
         table { width: 100%; }
