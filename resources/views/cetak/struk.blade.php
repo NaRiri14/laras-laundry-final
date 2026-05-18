@@ -3,8 +3,8 @@
 <head>
     <title>Cetak Struk #{{ $transaksi->id_transaksi }}</title>
     <style>
-        @page { size: 58mm auto; margin: 0; }
-        body { font-family: 'Courier New', monospace; width: 50mm; margin: 0 auto; padding: 2mm 0; font-size: 9px; color: black; background: white; }
+        @page { size: 48mm auto; margin: 0; }
+        body { font-family: 'Courier New', monospace; width: 44mm; margin: 0 auto; padding: 1mm 0; font-size: 8px; color: black; background: white; }
         .text-center { text-align: center; }
         .line { border-bottom: 1px dashed #000; margin: 5px 0; }
         table { width: 100%; }
