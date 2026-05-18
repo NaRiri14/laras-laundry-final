@@ -46,7 +46,7 @@
                 width: 58mm !important;
                 max-width: 58mm !important;
                 padding: 3mm !important;
-                font-size: 10px !important;
+                font-size: 13px !important;
                 margin: 0 !important;
             }
             .area-tombol { display: none !important; }
