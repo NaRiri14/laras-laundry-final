@@ -1,16 +1,18 @@
 <!DOCTYPE html>
 <html>
 <head>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Cetak Struk #{{ $transaksi->id_transaksi }}</title>
     <style>
         @page { size: 58mm auto; margin: 0; }
 
         body {
             font-family: 'Courier New', monospace;
-            width: 58mm;
-            margin: 0;
-            padding: 3mm;
-            font-size: 13px;
+            width: 100%;
+            max-width: 500px;
+            margin: 0 auto;
+            padding: 20px;
+            font-size: 16px;
             color: black;
             background: white;
             box-sizing: border-box;
@@ -39,6 +41,14 @@
         }
 
         @media print {
+            @page { size: 58mm auto; margin: 0; }
+            body {
+                width: 58mm !important;
+                max-width: 58mm !important;
+                padding: 3mm !important;
+                font-size: 10px !important;
+                margin: 0 !important;
+            }
             .area-tombol { display: none !important; }
         }
     </style>
@@ -46,10 +56,10 @@
 <body>
 
     <div class="area-tombol">
-    <a href="{{ route('kasir') }}" class="btn-kembali">← Kembali</a>
-    &nbsp;
-    <button onclick="window.print()" class="btn-kembali">🖨️ Cetak</button>
-</div>
+        <a href="{{ route('kasir') }}" class="btn-kembali">← Kembali</a>
+        &nbsp;
+        <button onclick="window.print()" class="btn-kembali">🖨️ Cetak</button>
+    </div>
 
     <div id="struk">
 
