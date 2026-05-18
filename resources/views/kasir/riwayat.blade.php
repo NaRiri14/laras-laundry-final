@@ -148,16 +148,7 @@
 @push('scripts')
 <script>
 function silentPrint(id, bayar) {
-    var iframe = document.createElement('iframe');
-    iframe.style.display = 'none';
-    iframe.src = '{{ route("cetak.struk") }}?id=' + id + '&bayar=' + bayar + '&mode=silent';
-    document.body.appendChild(iframe);
-    iframe.onload = function() {
-        iframe.contentWindow.print();
-        setTimeout(function() {
-            document.body.removeChild(iframe);
-        }, 1000);
-    };
+    window.open('{{ route("cetak.struk") }}?id=' + id + '&bayar=' + bayar, '_blank');
 }
 
 function editPelanggan(id, nama, hp) {
