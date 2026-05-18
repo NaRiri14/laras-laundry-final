@@ -148,18 +148,15 @@
 @push('scripts')
 <script>
 function silentPrint(id, bayar) {
-    window.open('{{ route("cetak.struk") }}?id=' + id + '&bayar=' + bayar, '_blank');
-}
-
-function editPelanggan(id, nama, hp) {
-    let n = prompt("Edit Nama Pelanggan:", nama);
-    if (n == null || n == "") return;
-    let h = prompt("Edit No. HP:", hp);
-    if (h == null || h == "") return;
-    document.getElementById('id_pel').value = id;
-    document.getElementById('nm_pel').value = n;
-    document.getElementById('hp_pel').value = h;
-    document.getElementById('fEditPelanggan').submit();
+    var win = window.open(
+        '{{ route("cetak.struk") }}?id=' + id + '&bayar=' + bayar + '&mode=silent',
+        '_blank',
+        'width=1,height=1,top=-9999,left=-9999'
+    );
+    win.onload = function() {
+        win.print();
+        setTimeout(function() { win.close(); }, 1000);
+    };
 }
 </script>
 @endpush
