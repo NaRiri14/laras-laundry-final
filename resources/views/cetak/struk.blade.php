@@ -17,7 +17,10 @@
 <body>
 
     <div class="area-tombol">
-        <a href="{{ route('kasir') }}" class="btn-kembali">← Kembali ke Kasir</a>
+        <div class="area-tombol">
+    <a href="{{ route('kasir') }}" class="btn-kembali">← Kembali</a>
+    <button onclick="window.print()" class="btn-kembali" style="background:#ff9f43; margin-left:10px;">🖨️ Cetak</button>
+</div>
     </div>
 
     <div class="text-center">
@@ -60,8 +63,6 @@
 
 </body>
 <script>
-    if (new URLSearchParams(window.location.search).get('mode') === 'silent') {
-        window.onload = function() { window.print(); };
-    }
+
 </script>
 </html>
