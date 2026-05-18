@@ -3,23 +3,17 @@
 <head>
     <title>Cetak Struk #{{ $transaksi->id_transaksi }}</title>
     <style>
-        @page { size: 48mm auto; margin: 0; }
-        body { font-family: 'Courier New', monospace; width: 44mm; margin: 0 auto; padding: 1mm 0; font-size: 8px; color: black; background: white; }
+        @page { size: 58mm auto; margin: 0; }
+        body { font-family: 'Courier New', monospace; width: 52mm; margin: 0 auto; padding: 2mm; font-size: 9px; color: black; background: white; }
         .text-center { text-align: center; }
-        .line { border-bottom: 1px dashed #000; margin: 5px 0; }
-        table { width: 100%; }
+        .line { border-bottom: 1px dashed #000; margin: 4px 0; }
+        table { width: 100%; table-layout: fixed; }
+        td:last-child { text-align: right; width: 45%; }
+        td:first-child { width: 55%; }
         .bold { font-weight: bold; }
         .area-tombol { text-align: center; margin-bottom: 20px; }
-        .btn-kembali {
-            display: inline-block; padding: 10px 20px;
-            background: #00d4aa; color: white; text-decoration: none;
-            border-radius: 8px; font-family: 'Segoe UI', sans-serif;
-            font-weight: bold; font-size: 14px; border: none; cursor: pointer;
-        }
-        @media print {
-            .area-tombol { display: none !important; }
-            body { margin: 0; padding: 0; width: 100%; }
-        }
+        .btn-kembali { display: inline-block; padding: 10px 20px; background: #00d4aa; color: white; text-decoration: none; border-radius: 8px; font-family: 'Segoe UI', sans-serif; font-weight: bold; font-size: 14px; border: none; cursor: pointer; }
+        @media print { .area-tombol { display: none !important; } body { margin: 0; padding: 0; width: 100%; } }
     </style>
 </head>
 <body>
