@@ -3,44 +3,44 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
-use App\Models\Outlet; // Pastikan ini tidak merah lagi
+use App\Models\Outlet;
 
 class UserController extends Controller
 {
     public function index()
-{
-    $users = User::with('outlet')->orderByDesc('level')->get();
-    $outlets = Outlet::where('nama_cabang', 'not like', '%Owner%')->get();
-    $editData = ['id'=>'','username'=>'','password'=>'','nama_cabang'=>'','alamat_outlet'=>'','level'=>'user'];
+    {
+        $users    = User::with('outlet')->orderByDesc('level')->get();
+        $outlets  = Outlet::where('nama_cabang', 'not like', '%Owner%')->get();
+        $editData = ['id'=>'','username'=>'','password'=>'','nama_cabang'=>'','alamat_outlet'=>'','level'=>'user'];
 
-    return view('owner.users', compact('users', 'outlets', 'editData'));
-}
+        return view('owner.users', compact('users', 'outlets', 'editData'));
+    }
 
-public function edit($id)
-{
-    $users = User::with('outlet')->orderByDesc('level')->get();
-    $outlets = Outlet::where('nama_cabang', 'not like', '%Owner%')->get();
+    public function edit($id)
+    {
+        $users   = User::with('outlet')->orderByDesc('level')->get();
+        $outlets = Outlet::where('nama_cabang', 'not like', '%Owner%')->get();
+        $user    = User::with('outlet')->findOrFail($id);
 
-    $user = User::with('outlet')->findOrFail($id);
-    $editData = [
-        'id'           => $user->id,
-        'username'     => $user->username,
-        'password'     => $user->password,
-        'nama_cabang'  => $user->outlet->nama_cabang ?? '',
-        'alamat_outlet'=> $user->outlet->alamat_outlet ?? '',
-        'level'        => $user->level,
-    ];
+        $editData = [
+            'id'            => $user->id,
+            'username'      => $user->username,
+            'password'      => '', // Kosongkan, jangan tampilkan hash
+            'nama_cabang'   => $user->outlet->nama_cabang ?? '',
+            'alamat_outlet' => $user->outlet->alamat_outlet ?? '',
+            'level'         => $user->level,
+        ];
 
-    return view('owner.users', compact('users', 'outlets', 'editData'));
-}
+        return view('owner.users', compact('users', 'outlets', 'editData'));
+    }
 
     public function simpan(Request $request)
     {
-        $namaCabang  = $request->nama_cabang;
-        $alamat      = $request->alamat_cabang;
+        $namaCabang = $request->nama_cabang;
+        $alamat     = $request->alamat_cabang;
 
-        // Cek atau buat outlet
         $outlet = Outlet::where('nama_cabang', $namaCabang)->first();
         if ($outlet) {
             $outlet->alamat_outlet = $alamat;
@@ -53,42 +53,43 @@ public function edit($id)
         }
 
         if ($request->id_edit) {
-            // Update user
-            $user = User::findOrFail($request->id_edit);
-            $user->username   = $request->username;
-            $user->password   = $request->password;
-            $user->id_outlet  = $outlet->id_outlet;
-            $user->level      = $request->level;
+            $user            = User::findOrFail($request->id_edit);
+            $user->username  = $request->username;
+            $user->id_outlet = $outlet->id_outlet;
+            $user->level     = $request->level;
+            // Hanya update password jika diisi
+            if ($request->password) {
+                $user->password = Hash::make($request->password);
+            }
             $user->save();
         } else {
-            // Buat user baru
             User::create([
                 'username'     => $request->username,
-                'password'     => $request->password,
+                'password'     => Hash::make($request->password),
                 'id_outlet'    => $outlet->id_outlet,
                 'level'        => $request->level,
-                'kode_rahasia' => 'laras123',
+                'kode_rahasia' => Hash::make('laras123'),
             ]);
         }
 
         return redirect()->route('users')->with('success', 'Berhasil Disimpan!');
     }
 
-            public function hapus($id)
-        {
-            $user = User::findOrFail($id);
+    public function hapus($id)
+    {
+        $user = User::findOrFail($id);
 
-            if ($user->id == 1) {
-                return redirect()->route('users')->with('error', 'Akun Owner utama tidak boleh dihapus!');
-            }
-
-            $id_outlet = $user->id_outlet;
-            $user->delete();
-
-            if ($id_outlet && $id_outlet != 1) {
-                Outlet::where('id_outlet', $id_outlet)->delete();
-            }
-
-            return redirect()->route('users')->with('success', 'Berhasil Dihapus!');
+        if ($user->id == 1) {
+            return redirect()->route('users')->with('error', 'Akun Owner utama tidak boleh dihapus!');
         }
+
+        $id_outlet = $user->id_outlet;
+        $user->delete();
+
+        if ($id_outlet && $id_outlet != 1) {
+            Outlet::where('id_outlet', $id_outlet)->delete();
+        }
+
+        return redirect()->route('users')->with('success', 'Berhasil Dihapus!');
+    }
 }
