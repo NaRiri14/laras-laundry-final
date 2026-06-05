@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Hash;
 use App\Models\User;
 
 class AuthController extends Controller
@@ -23,11 +24,10 @@ class AuthController extends Controller
         $username = $request->username;
         $password = $request->password;
 
-        $user = User::where('username', $username)
-                    ->where('password', $password)
-                    ->first();
+        $user = User::where('username', $username)->first();
 
-        if ($user) {
+        // Pakai Hash::check untuk verifikasi password
+        if ($user && Hash::check($password, $user->password)) {
             session([
                 'login'     => true,
                 'id'        => $user->id,
@@ -53,8 +53,8 @@ class AuthController extends Controller
 
         $user = User::where('username', $username)->where('level', 'owner')->first();
 
-        if ($user && $kode === 'laras123') {
-            $user->password = $newpass;
+        if ($user && Hash::check($kode, $user->kode_rahasia)) {
+            $user->password = Hash::make($newpass);
             $user->save();
             return redirect('/')->with('success_reset', 'Password Owner berhasil direset!');
         }
