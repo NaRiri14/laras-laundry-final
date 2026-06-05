@@ -8,11 +8,11 @@
 
         body {
             font-family: 'Courier New', monospace;
-            width: 100%;
-            max-width: 500px;
+            width: 58mm;
+            max-width: 58mm;
             margin: 0 auto;
-            padding: 20px;
-            font-size: 16px;
+            padding: 3mm;
+            font-size: 13px;
             color: black;
             background: white;
             box-sizing: border-box;
@@ -21,11 +21,11 @@
         .text-center { text-align: center; }
         .line { border-bottom: 1px dashed #000; margin: 4px 0; }
         .bold { font-weight: bold; }
-        .row { display: flex; justify-content: space-between; }
 
         .area-tombol {
             text-align: center;
             margin-bottom: 20px;
+            width: 100%;
         }
 
         .btn-kembali {
@@ -38,6 +38,15 @@
             font-family: 'Segoe UI', sans-serif;
             font-weight: bold;
             font-size: 14px;
+        }
+
+        @media screen {
+            body {
+                width: 100% !important;
+                max-width: 400px !important;
+                font-size: 14px !important;
+            }
+            .area-tombol { display: block; }
         }
 
         @media print {
@@ -105,52 +114,8 @@
 
 </body>
 <script>
-    function cetakStruk() {
-        const isiStruk = document.getElementById('struk').innerHTML;
-        const iframe = document.createElement('iframe');
-        iframe.style.position = 'fixed';
-        iframe.style.top = '-9999px';
-        iframe.style.left = '-9999px';
-        iframe.style.width = '58mm';
-        iframe.style.height = '0';
-        document.body.appendChild(iframe);
-
-        const doc = iframe.contentWindow.document;
-        doc.open();
-        doc.write(`
-            <!DOCTYPE html>
-            <html>
-            <head>
-                <style>
-                    @page { size: 58mm auto; margin: 0; }
-                    body {
-                        font-family: 'Courier New', monospace;
-                        width: 58mm;
-                        margin: 0;
-                        padding: 3mm;
-                        font-size: 13px;
-                        color: black;
-                        background: white;
-                        box-sizing: border-box;
-                    }
-                    .text-center { text-align: center; }
-                    .line { border-bottom: 1px dashed #000; margin: 4px 0; }
-                    .bold { font-weight: bold; }
-                </style>
-            </head>
-            <body>${isiStruk}</body>
-            </html>
-        `);
-        doc.close();
-
-        iframe.contentWindow.focus();
-        iframe.contentWindow.print();
-
-        setTimeout(() => document.body.removeChild(iframe), 1000);
-    }
-
     if (new URLSearchParams(window.location.search).get('mode') === 'silent') {
-        window.onload = function() { cetakStruk(); };
+        window.onload = function() { window.print(); };
     }
 </script>
 </html>
