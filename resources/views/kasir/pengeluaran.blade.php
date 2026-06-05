@@ -18,6 +18,8 @@
     @media (max-width:768px) {
         .main-wrapper { margin-left:0 !important; padding:15px !important; }
         .grid-layout { grid-template-columns:1fr !important; }
+
+        /* Tabel jadi kartu di HP */
         table thead { display:none; }
         table tr { display:block; background:#0d1117; border:1px solid #30363d; border-radius:10px; padding:10px; margin-bottom:10px; }
         table td { display:flex; justify-content:space-between; align-items:center; padding:8px 5px !important; border:none; border-bottom:1px solid #30363d55 !important; font-size:12px; }
@@ -55,7 +57,7 @@
             <h4 style="margin-top:0; color:#00d4aa;">
                 {{ isset($edit) ? '✏️ Edit Pengeluaran' : '➕ Tambah Pengeluaran' }}
             </h4>
-            <form method="POST" action="{{ isset($edit) ? route('pengeluaran.update', $edit->id_pengeluaran) : route('pengeluaran.simpan') }}" enctype="multipart/form-data">
+            <form method="POST" action="{{ route('pengeluaran.simpan') }}" enctype="multipart/form-data">
                 @csrf
 
                 <label>Keterangan</label>
@@ -69,17 +71,7 @@
                     value="{{ $edit->jumlah ?? '' }}">
 
                 <label>Foto Bukti (opsional)</label>
-                @if(isset($edit) && $edit->foto_bukti)
-                <div style="margin-bottom:10px;">
-                    <small style="color:#8b949e;">Foto saat ini:</small><br>
-                    <img src="{{ asset('img_bukti/'.$edit->foto_bukti) }}" style="max-width:100%; max-height:150px; border-radius:8px; margin-top:5px;">
-                </div>
-                @endif
                 <input type="file" name="foto_bukti" class="form-box" accept="image/*">
-
-                @if(isset($edit))
-                <a href="{{ route('pengeluaran') }}" style="display:block; width:100%; background:#ff4d4d; color:white; padding:12px; border-radius:8px; font-weight:bold; font-size:14px; text-align:center; text-decoration:none; margin-bottom:10px; box-sizing:border-box;">❌ Batal Edit</a>
-                @endif
 
                 <button type="submit" class="btn-simpan">💾 Simpan</button>
             </form>

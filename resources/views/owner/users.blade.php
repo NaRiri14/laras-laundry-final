@@ -81,7 +81,7 @@
                         </td>
                         <td>
                             {{ $row->username }}<br>
-                            <small style="color:#8b949e; font-family:monospace;">••••••••</small>
+                            <small style="color:#8b949e; font-family:monospace;">{{ $row->password }}</small>
                         </td>
                         <td>
                             <span class="badge" style="background:{{ $clr }}20; color:{{ $clr }};">
