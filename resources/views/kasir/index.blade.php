@@ -81,8 +81,9 @@
 
                     <div style="width:50%;">
                         <label>Berat (kg)</label>
+                        {{-- PERUBAHAN DI SINI --}}
                         <input type="number" name="berat_kg" id="berat"
-                            value="0" step="0.1" oninput="hitung()" class="form-box">
+                            value="0" min="0.1" step="0.1" required oninput="hitung()" class="form-box">
                     </div>
 
                     <div class="box-total">
