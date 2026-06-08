@@ -81,7 +81,6 @@
 
                     <div style="width:50%;">
                         <label>Berat (kg)</label>
-                        {{-- PERUBAHAN DI SINI --}}
                         <input type="number" name="berat_kg" id="berat"
                             value="0" min="0.1" step="0.1" required oninput="hitung()" class="form-box">
                     </div>
@@ -95,8 +94,9 @@
                     <div class="row-flex" style="display:flex;gap:15px;">
                         <div style="flex:1;">
                             <label>Bayar (Rp)</label>
+                            {{-- PERUBAHAN DI SINI --}}
                             <input type="number" name="bayar" id="bayar"
-                                value="0" oninput="hitung()" class="form-box">
+                                placeholder="Masukkan jumlah bayar..." min="1" required oninput="hitung()" class="form-box">
                         </div>
                         <div style="flex:1;">
                             <label>Kembalian</label>
