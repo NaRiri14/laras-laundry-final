@@ -38,11 +38,10 @@ Route::middleware(['auth.kasir'])->group(function () {
     Route::post('/pengeluaran/simpan', [PengeluaranController::class, 'simpan'])->name('pengeluaran.simpan');
     Route::get('/pengeluaran/hapus/{id}', [PengeluaranController::class, 'hapus'])->name('pengeluaran.hapus');
     Route::get('/pengeluaran/edit/{id}', [PengeluaranController::class, 'edit'])->name('pengeluaran.edit');
-    Route::post('/pengeluaran/update/{id}', [PengeluaranController::class, 
+    Route::post('/pengeluaran/update/{id}', [PengeluaranController::class,
 'update'])->name('pengeluaran.update');
 
     Route::get('/cetak-struk', [CetakController::class, 'struk'])->name('cetak.struk');
-    Route::get('/cetak-laporan', [CetakController::class, 'laporan'])->name('cetak.laporan');
 });
 
 // --- ROUTE OWNER ---
@@ -60,5 +59,6 @@ Route::middleware(['auth.owner'])->group(function () {
     Route::get('/layanan/hapus/{id}', [LayananController::class, 'hapus'])->name('layanan.hapus');
 
     Route::get('/cabang', [CabangController::class, 'index'])->name('cabang');
+    Route::get('/cetak-laporan', [CetakController::class, 'laporan'])->name('cetak.laporan');
     Route::get('/cetak-laporan-global', [CetakController::class, 'laporanGlobal'])->name('cetak.laporan_global');
 });

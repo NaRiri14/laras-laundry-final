@@ -35,7 +35,11 @@ class LayananController extends Controller
 
     public function hapus($id)
     {
-        Layanan::findOrFail($id)->delete();
-        return redirect()->route('layanan')->with('success', 'Layanan Berhasil Dihapus!');
+        try {
+            Layanan::findOrFail($id)->delete();
+            return redirect()->route('layanan')->with('success', 'Layanan Berhasil Dihapus!');
+        } catch (\Illuminate\Database\QueryException $e) {
+            return redirect()->route('layanan')->with('error', 'Layanan tidak bisa dihapus karena sudah digunakan di data transaksi!');
+        }
     }
 }

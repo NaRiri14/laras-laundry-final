@@ -10,77 +10,84 @@ use Carbon\Carbon;
 
 class CabangController extends Controller
 {
+    const JATAH_MINGGUAN = 500000; // Rp 500.000 per cabang per minggu
+
     public function index(Request $request)
     {
         $cabangSelected = $request->cabang ?? Outlet::where('nama_cabang', 'not like', '%Owner%')->first()->id_outlet;
-        $filterWaktu    = $request->waktu ?? 'hari';
 
-        $outlets  = Outlet::where('nama_cabang', 'not like', '%Owner%')->get();
+        // Filter tanggal custom
+        $tglDari   = $request->tgl_dari   ?? now()->startOfWeek()->toDateString();
+        $tglSampai = $request->tgl_sampai ?? now()->toDateString();
+        if ($tglSampai < $tglDari) $tglSampai = $tglDari;
+
+        $outlets    = Outlet::where('nama_cabang', 'not like', '%Owner%')->get();
         $namaCabang = Outlet::find($cabangSelected)->nama_cabang ?? 'Cabang';
 
         $labels = [];
         $dataOmzet = [];
         $dataPengeluaran = [];
 
-        if ($filterWaktu == 'hari') {
+        $start    = Carbon::parse($tglDari);
+        $end      = Carbon::parse($tglSampai);
+        $diffDays = $start->diffInDays($end);
+
+        if ($diffDays == 0) {
             for ($jam = 8; $jam <= 21; $jam++) {
                 $labels[] = str_pad($jam, 2, '0', STR_PAD_LEFT) . ":00";
-                $dataOmzet[] = (int) Transaksi::whereDate('tgl_masuk', today())
+                $dataOmzet[] = (int) Transaksi::whereDate('tgl_masuk', $tglDari)
                     ->whereRaw('HOUR(tgl_masuk) = ?', [$jam])
-                    ->where('id_outlet', $cabangSelected)
-                    ->sum('total_bayar');
-                // Pengeluaran juga per jam, bukan ditumpuk di jam 8
-                $dataPengeluaran[] = (int) Pengeluaran::whereDate('tgl_pengeluaran', today())
-                    ->whereRaw('HOUR(tgl_pengeluaran) = ?', [$jam])
-                    ->where('id_outlet', $cabangSelected)
-                    ->sum('jumlah');
-            }
-        } elseif ($filterWaktu == 'minggu') {
-            $hariIndo = ['Sunday'=>'Minggu','Monday'=>'Senin','Tuesday'=>'Selasa','Wednesday'=>'Rabu','Thursday'=>'Kamis','Friday'=>'Jumat','Saturday'=>'Sabtu'];
-            for ($i = 6; $i >= 0; $i--) {
-                $tgl = Carbon::today()->subDays($i);
-                $labels[] = $hariIndo[$tgl->format('l')];
-                $dataOmzet[] = (int) Transaksi::whereDate('tgl_masuk', $tgl)
                     ->where('id_outlet', $cabangSelected)->sum('total_bayar');
-                $dataPengeluaran[] = (int) Pengeluaran::whereDate('tgl_pengeluaran', $tgl)
+                $dataPengeluaran[] = (int) Pengeluaran::whereDate('tgl_pengeluaran', $tglDari)
+                    ->whereRaw('HOUR(tgl_pengeluaran) = ?', [$jam])
                     ->where('id_outlet', $cabangSelected)->sum('jumlah');
             }
         } else {
-            for ($w = 1; $w <= 4; $w++) {
-                $labels[] = "Mgg $w";
-                $startDay = ($w - 1) * 7 + 1;
-                $endDay   = ($w == 4) ? 31 : $w * 7;
-                $dataOmzet[] = (int) Transaksi::whereMonth('tgl_masuk', now()->month)
-                    ->whereYear('tgl_masuk', now()->year)
-                    ->whereRaw('DAY(tgl_masuk) BETWEEN ? AND ?', [$startDay, $endDay])
+            for ($i = 0; $i <= $diffDays; $i++) {
+                $tgl = $start->copy()->addDays($i);
+                $labels[] = $tgl->format('d/m');
+                $dataOmzet[] = (int) Transaksi::whereDate('tgl_masuk', $tgl)
                     ->where('id_outlet', $cabangSelected)->sum('total_bayar');
-                $dataPengeluaran[] = (int) Pengeluaran::whereMonth('tgl_pengeluaran', now()->month)
-                    ->whereYear('tgl_pengeluaran', now()->year)
-                    ->whereRaw('DAY(tgl_pengeluaran) BETWEEN ? AND ?', [$startDay, $endDay])
+                $dataPengeluaran[] = (int) Pengeluaran::whereDate('tgl_pengeluaran', $tgl)
                     ->where('id_outlet', $cabangSelected)->sum('jumlah');
             }
         }
 
         $totalIn    = array_sum($dataOmzet);
         $totalOut   = array_sum($dataPengeluaran);
-        $labaBersih = $totalIn - $totalOut;
+
+        // Jatah operasional Rp 500.000 per minggu. Untuk rentang filter custom,
+        // hitung berapa minggu (penuh) yang tercakup. Minimal 1 minggu jatah.
+        $jumlahHariPeriode = $diffDays + 1;
+        $jumlahMinggu      = max(1, ceil($jumlahHariPeriode / 7));
+        $jatahPeriode      = $jumlahMinggu * self::JATAH_MINGGUAN;
+        $kelebihanJatah    = max(0, $totalOut - $jatahPeriode);
+        $labaBersih        = $totalIn - $kelebihanJatah;
+
+        // Sisa jatah mingguan - SELALU mengacu pada minggu yang sedang berjalan saat ini,
+        // bukan ikut rentang filter laporan. Jatah reset ke Rp 500.000 tiap minggu baru,
+        // sisa minggu lalu tidak ditabung/menumpuk ke minggu berikutnya.
+        $mingguIniMulai   = now()->startOfWeek();
+        $mingguIniSelesai = now()->endOfWeek();
+
+        $pengeluaranMingguIni = (int) Pengeluaran::where('id_outlet', $cabangSelected)
+            ->whereBetween('tgl_pengeluaran', [$mingguIniMulai, $mingguIniSelesai])
+            ->sum('jumlah');
+
+        $jatahTotal = self::JATAH_MINGGUAN;
+        $sisaJatah  = $jatahTotal - $pengeluaranMingguIni;
 
         // List pengeluaran
-        $query = Pengeluaran::where('id_outlet', $cabangSelected);
-        if ($filterWaktu == 'hari') {
-            $query->whereDate('tgl_pengeluaran', today());
-        } elseif ($filterWaktu == 'minggu') {
-            $query->where('tgl_pengeluaran', '>=', Carbon::today()->subDays(6));
-        } else {
-            $query->whereMonth('tgl_pengeluaran', now()->month)
-                  ->whereYear('tgl_pengeluaran', now()->year);
-        }
-        $pengeluaranList = $query->orderByDesc('tgl_pengeluaran')->get();
+        $pengeluaranList = Pengeluaran::where('id_outlet', $cabangSelected)
+            ->whereBetween('tgl_pengeluaran', [$tglDari . ' 00:00:00', $tglSampai . ' 23:59:59'])
+            ->orderByDesc('tgl_pengeluaran')->get();
 
         return view('owner.cabang', compact(
-            'outlets', 'cabangSelected', 'filterWaktu', 'namaCabang',
+            'outlets', 'cabangSelected', 'namaCabang',
+            'tglDari', 'tglSampai',
             'labels', 'dataOmzet', 'dataPengeluaran',
-            'totalIn', 'totalOut', 'labaBersih', 'pengeluaranList'
+            'totalIn', 'totalOut', 'labaBersih',
+            'pengeluaranList', 'jatahTotal', 'sisaJatah', 'pengeluaranMingguIni'
         ));
     }
 }

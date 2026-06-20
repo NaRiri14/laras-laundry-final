@@ -10,6 +10,8 @@ use Carbon\Carbon;
 
 class CetakController extends Controller
 {
+    const JATAH_MINGGUAN = 500000;
+
     public function struk(Request $request)
     {
         $id    = $request->id;
@@ -25,86 +27,141 @@ class CetakController extends Controller
         return view('cetak.struk', compact('transaksi', 'bayar', 'total', 'kembali'));
     }
 
-    public function laporan(Request $request)
+    // Hitung riwayat jatah per minggu dalam periode (untuk 1 cabang)
+    private function hitungRiwayatJatah($tglDari, $tglSampai, $idOutlet = null)
     {
-        $idOutlet = $request->cabang ?? 1;
-        $waktu    = $request->waktu ?? 'hari';
-        $outlet   = Outlet::findOrFail($idOutlet);
+        $start = Carbon::parse($tglDari)->startOfWeek(Carbon::MONDAY);
+        $end   = Carbon::parse($tglSampai)->endOfWeek(Carbon::SUNDAY);
 
-        if ($waktu == 'hari') {
-            $judulPeriode = "Laporan Harian (" . Carbon::now()->format('d M Y') . ")";
-            $transaksiList = Transaksi::with(['pelanggan', 'layanan'])
-                ->where('id_outlet', $idOutlet)
-                ->whereDate('tgl_masuk', Carbon::today())
-                ->orderByDesc('id_transaksi')->get();
-            $pengeluaranList = Pengeluaran::where('id_outlet', $idOutlet)
-                ->whereDate('tgl_pengeluaran', Carbon::today())->get();
-        } elseif ($waktu == 'minggu') {
-            $judulPeriode = "Laporan Mingguan (7 Hari Terakhir)";
-            $transaksiList = Transaksi::with(['pelanggan', 'layanan'])
-                ->where('id_outlet', $idOutlet)
-                ->whereDate('tgl_masuk', '>=', Carbon::now()->subDays(7))
-                ->orderByDesc('id_transaksi')->get();
-            $pengeluaranList = Pengeluaran::where('id_outlet', $idOutlet)
-                ->whereDate('tgl_pengeluaran', '>=', Carbon::now()->subDays(7))->get();
-        } else {
-            $judulPeriode = "Laporan Bulanan (Bulan " . Carbon::now()->format('F Y') . ")";
-            $transaksiList = Transaksi::with(['pelanggan', 'layanan'])
-                ->where('id_outlet', $idOutlet)
-                ->whereMonth('tgl_masuk', Carbon::now()->month)
-                ->whereYear('tgl_masuk', Carbon::now()->year)
-                ->orderByDesc('id_transaksi')->get();
-            $pengeluaranList = Pengeluaran::where('id_outlet', $idOutlet)
-                ->whereMonth('tgl_pengeluaran', Carbon::now()->month)
-                ->whereYear('tgl_pengeluaran', Carbon::now()->year)->get();
+        $riwayat = [];
+        $current = $start->copy();
+
+        while ($current <= Carbon::parse($tglSampai)) {
+            $mingguMulai  = $current->copy()->startOfWeek(Carbon::MONDAY);
+            $mingguSelesai = $current->copy()->endOfWeek(Carbon::SUNDAY);
+
+            // Batasi ke rentang filter
+            $dari    = $mingguMulai->lt(Carbon::parse($tglDari)) ? Carbon::parse($tglDari) : $mingguMulai;
+            $sampai  = $mingguSelesai->gt(Carbon::parse($tglSampai)) ? Carbon::parse($tglSampai) : $mingguSelesai;
+
+            $query = Pengeluaran::whereBetween('tgl_pengeluaran', [
+                $dari->format('Y-m-d') . ' 00:00:00',
+                $sampai->format('Y-m-d') . ' 23:59:59'
+            ]);
+            if ($idOutlet) $query->where('id_outlet', $idOutlet);
+
+            $pengeluaranMinggu = (int) $query->sum('jumlah');
+            $jatah = self::JATAH_MINGGUAN;
+            $sisa  = $jatah - $pengeluaranMinggu;
+
+            $riwayat[] = [
+                'label'       => $mingguMulai->format('d/m') . ' - ' . $mingguSelesai->format('d/m/Y'),
+                'pengeluaran' => $pengeluaranMinggu,
+                'jatah'       => $jatah,
+                'sisa'        => $sisa,
+            ];
+
+            $current->addWeek();
         }
 
-        $totalIn  = $transaksiList->sum('total_bayar');
-        $totalOut = $pengeluaranList->sum('jumlah');
-        $labaBersih = $totalIn - $totalOut;
+        return $riwayat;
+    }
+
+    public function laporan(Request $request)
+    {
+        $idOutlet  = $request->cabang ?? 1;
+        $tglDari   = $request->tgl_dari   ?? now()->toDateString();
+        $tglSampai = $request->tgl_sampai ?? now()->toDateString();
+        if ($tglSampai < $tglDari) $tglSampai = $tglDari;
+
+        $outlet = Outlet::findOrFail($idOutlet);
+
+        $judulPeriode = "Laporan " . Carbon::parse($tglDari)->format('d M Y');
+        if ($tglDari != $tglSampai) {
+            $judulPeriode .= " s/d " . Carbon::parse($tglSampai)->format('d M Y');
+        }
+
+        $transaksiList = Transaksi::with(['pelanggan', 'layanan'])
+            ->where('id_outlet', $idOutlet)
+            ->whereBetween('tgl_masuk', [$tglDari . ' 00:00:00', $tglSampai . ' 23:59:59'])
+            ->orderByDesc('id_transaksi')->get();
+
+        $riwayatLayanan = $transaksiList
+            ->groupBy(function ($trx) { return $trx->layanan->nama_layanan ?? 'Lainnya'; })
+            ->map(function ($group) { return $group->count(); })
+            ->sortDesc();
+
+        $pengeluaranList = Pengeluaran::where('id_outlet', $idOutlet)
+            ->whereBetween('tgl_pengeluaran', [$tglDari . ' 00:00:00', $tglSampai . ' 23:59:59'])
+            ->orderBy('tgl_pengeluaran')->get();
+
+        $totalIn          = $transaksiList->sum('total_bayar');
+        $totalPengeluaran = $pengeluaranList->sum('jumlah');
+
+        $jumlahHari   = Carbon::parse($tglDari)->diffInDays(Carbon::parse($tglSampai)) + 1;
+        $jumlahMinggu = max(1, ceil($jumlahHari / 7));
+        $jatahPeriode = $jumlahMinggu * self::JATAH_MINGGUAN;
+        $labaBersih   = $totalIn - max(0, $totalPengeluaran - $jatahPeriode);
+
+        $riwayatJatah = $this->hitungRiwayatJatah($tglDari, $tglSampai, $idOutlet);
 
         return view('cetak.laporan', compact(
-            'outlet', 'judulPeriode', 'transaksiList',
-            'pengeluaranList', 'totalIn', 'totalOut', 'labaBersih'
+            'outlet', 'judulPeriode', 'transaksiList', 'riwayatLayanan',
+            'pengeluaranList', 'totalIn', 'totalPengeluaran', 'labaBersih',
+            'tglDari', 'tglSampai', 'riwayatJatah'
         ));
     }
 
     public function laporanGlobal(Request $request)
     {
-        $waktu = $request->waktu ?? 'bulan';
+        $tglDari   = $request->tgl_dari   ?? now()->startOfMonth()->toDateString();
+        $tglSampai = $request->tgl_sampai ?? now()->toDateString();
+        if ($tglSampai < $tglDari) $tglSampai = $tglDari;
 
-        if ($waktu == 'hari') {
-            $judulPeriode = "Laporan Harian Gabungan (" . Carbon::now()->format('d M Y') . ")";
-            $transaksiList = Transaksi::with(['pelanggan', 'layanan', 'outlet'])
-                ->whereDate('tgl_masuk', Carbon::today())
-                ->orderBy('tgl_masuk')->get();
-            $pengeluaranList = Pengeluaran::with('outlet')
-                ->whereDate('tgl_pengeluaran', Carbon::today())->get();
-        } elseif ($waktu == 'minggu') {
-            $judulPeriode = "Laporan Mingguan Gabungan (7 Hari Terakhir)";
-            $transaksiList = Transaksi::with(['pelanggan', 'layanan', 'outlet'])
-                ->whereDate('tgl_masuk', '>=', Carbon::now()->subDays(7))
-                ->orderBy('tgl_masuk')->get();
-            $pengeluaranList = Pengeluaran::with('outlet')
-                ->whereDate('tgl_pengeluaran', '>=', Carbon::now()->subDays(7))->get();
-        } else {
-            $judulPeriode = "Laporan Bulanan Gabungan (Periode: " . Carbon::now()->format('F Y') . ")";
-            $transaksiList = Transaksi::with(['pelanggan', 'layanan', 'outlet'])
-                ->whereMonth('tgl_masuk', Carbon::now()->month)
-                ->whereYear('tgl_masuk', Carbon::now()->year)
-                ->orderBy('tgl_masuk')->get();
-            $pengeluaranList = Pengeluaran::with('outlet')
-                ->whereMonth('tgl_pengeluaran', Carbon::now()->month)
-                ->whereYear('tgl_pengeluaran', Carbon::now()->year)->get();
+        $judulPeriode = "Laporan " . Carbon::parse($tglDari)->format('d M Y');
+        if ($tglDari != $tglSampai) {
+            $judulPeriode .= " s/d " . Carbon::parse($tglSampai)->format('d M Y');
         }
 
-        $totalIn    = $transaksiList->sum('total_bayar');
-        $totalOut   = $pengeluaranList->sum('jumlah');
-        $labaBersih = $totalIn - $totalOut;
+        $transaksiList = Transaksi::with(['pelanggan', 'layanan', 'outlet'])
+            ->whereBetween('tgl_masuk', [$tglDari . ' 00:00:00', $tglSampai . ' 23:59:59'])
+            ->orderBy('tgl_masuk')->get();
+
+        $riwayatLayanan = $transaksiList
+            ->groupBy(function ($trx) { return $trx->layanan->nama_layanan ?? 'Lainnya'; })
+            ->map(function ($group) { return $group->count(); })
+            ->sortDesc();
+
+        $pengeluaranList = Pengeluaran::with('outlet')
+            ->whereBetween('tgl_pengeluaran', [$tglDari . ' 00:00:00', $tglSampai . ' 23:59:59'])
+            ->orderBy('tgl_pengeluaran')->get();
+
+        $totalIn          = $transaksiList->sum('total_bayar');
+        $totalPengeluaran = $pengeluaranList->sum('jumlah');
+
+        // Laba bersih global: kelebihan jatah dihitung per cabang
+        $outlets = Outlet::where('nama_cabang', 'not like', '%Owner%')->get();
+        $jumlahHari   = Carbon::parse($tglDari)->diffInDays(Carbon::parse($tglSampai)) + 1;
+        $jumlahMinggu = max(1, ceil($jumlahHari / 7));
+        $jatahPerCabang = $jumlahMinggu * self::JATAH_MINGGUAN;
+
+        $totalKelebihanJatah = 0;
+        foreach ($outlets as $outlet) {
+            $pengeluaranCabang = $pengeluaranList->where('id_outlet', $outlet->id_outlet)->sum('jumlah');
+            $totalKelebihanJatah += max(0, $pengeluaranCabang - $jatahPerCabang);
+        }
+        $labaBersih = $totalIn - $totalKelebihanJatah;
+
+        // Riwayat jatah per minggu per cabang
+        $riwayatJatahPerCabang = [];
+        foreach ($outlets as $outlet) {
+            $riwayatJatahPerCabang[$outlet->nama_cabang] = $this->hitungRiwayatJatah($tglDari, $tglSampai, $outlet->id_outlet);
+        }
 
         return view('cetak.laporan_global', compact(
-            'judulPeriode', 'transaksiList', 'pengeluaranList',
-            'totalIn', 'totalOut', 'labaBersih'
+            'judulPeriode', 'transaksiList', 'riwayatLayanan',
+            'pengeluaranList', 'totalIn', 'totalPengeluaran', 'labaBersih',
+            'riwayatJatahPerCabang'
         ));
     }
 }

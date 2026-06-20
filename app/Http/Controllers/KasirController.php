@@ -10,9 +10,27 @@ use Carbon\Carbon;
 
 class KasirController extends Controller
 {
+    const MIN_BERAT_KG = 1; // Minimal order 1 kg
+    const JATAH_MINGGUAN = 500000; // Rp 500.000 per cabang per minggu, reset tiap minggu
+
     private function getOutlet()
     {
         return Outlet::find(session('id_outlet'));
+    }
+
+    private function hitungJatahMingguan($idOutlet)
+    {
+        $mingguIniMulai   = now()->startOfWeek();
+        $mingguIniSelesai = now()->endOfWeek();
+
+        $pengeluaranMingguIni = (int) Pengeluaran::where('id_outlet', $idOutlet)
+            ->whereBetween('tgl_pengeluaran', [$mingguIniMulai, $mingguIniSelesai])
+            ->sum('jumlah');
+
+        $jatahTotal = self::JATAH_MINGGUAN;
+        $sisaJatah  = $jatahTotal - $pengeluaranMingguIni;
+
+        return compact('jatahTotal', 'sisaJatah', 'pengeluaranMingguIni');
     }
 
     public function dashboard()
@@ -29,14 +47,22 @@ class KasirController extends Controller
         $totalOrder = Transaksi::whereDate('tgl_masuk', $today)
             ->where('id_outlet', $idOutlet)->count();
 
-        $kasBersih = $pemasukan - $pengeluaran;
+        ['jatahTotal' => $jatahTotal, 'sisaJatah' => $sisaJatah, 'pengeluaranMingguIni' => $pengeluaranMingguIni]
+            = $this->hitungJatahMingguan($idOutlet);
 
+        // Pengeluaran diambil dari jatah mingguan dulu. Laba bersih cuma berkurang
+        // kalau pengeluaran minggu ini sudah melebihi jatah (kelebihannya baru "makan" pendapatan).
+        $kelebihanJatah = max(0, $pengeluaranMingguIni - $jatahTotal);
+        $labaBersih = $pemasukan - $kelebihanJatah;
+
+        // Grafik: Senin s/d Minggu minggu ini (bukan 7 hari terakhir)
         $labelHari = [];
         $dataPendapatan = [];
         $hariIndo = ['Sun'=>'Min','Mon'=>'Sen','Tue'=>'Sel','Wed'=>'Rab','Thu'=>'Kam','Fri'=>'Jum','Sat'=>'Sab'];
+        $seninMingguIni = Carbon::now()->startOfWeek(Carbon::MONDAY); // Senin
 
-        for ($i = 6; $i >= 0; $i--) {
-            $tgl = Carbon::today()->subDays($i);
+        for ($i = 0; $i <= 6; $i++) {
+            $tgl = $seninMingguIni->copy()->addDays($i);
             $labelHari[] = $hariIndo[$tgl->format('D')];
             $dataPendapatan[] = Transaksi::whereDate('tgl_masuk', $tgl)
                 ->where('id_outlet', $idOutlet)->sum('total_bayar');
@@ -55,7 +81,8 @@ class KasirController extends Controller
             ->limit(4)->get();
 
         return view('kasir.dashboard', compact(
-            'pemasukan','pengeluaran','totalOrder','kasBersih',
+            'pemasukan','pengeluaran','totalOrder','labaBersih',
+            'jatahTotal','sisaJatah','pengeluaranMingguIni','kelebihanJatah',
             'labelHari','dataPendapatan','layananTerlaris','transaksiTerbaru'
         ))->with('outlet', $this->getOutlet());
     }
@@ -71,7 +98,11 @@ class KasirController extends Controller
         $pengeluaran = Pengeluaran::whereDate('tgl_pengeluaran', $today)
             ->where('id_outlet', $idOutlet)->sum('jumlah');
 
-        $kasBersih = $pemasukan - $pengeluaran;
+        // Laba bersih: pendapatan hanya berkurang jika pengeluaran minggu ini melebihi jatah
+        ['jatahTotal' => $jatahTotal, 'sisaJatah' => $sisaJatah, 'pengeluaranMingguIni' => $pengeluaranMingguIni]
+            = $this->hitungJatahMingguan($idOutlet);
+        $kelebihanJatah = max(0, $pengeluaranMingguIni - $jatahTotal);
+        $kasBersih = $pemasukan - $kelebihanJatah;
 
         $layanan = Layanan::orderBy('nama_layanan')->get();
 
@@ -82,11 +113,18 @@ class KasirController extends Controller
             ->limit(3)->get();
 
         return view('kasir.index', compact('pemasukan','pengeluaran','kasBersih','layanan','antrian'))
-            ->with('outlet', $this->getOutlet());
+            ->with('outlet', $this->getOutlet())
+            ->with('minBerat', self::MIN_BERAT_KG);
     }
 
     public function simpan(Request $request)
     {
+        $request->validate([
+            'berat_kg' => 'required|numeric|min:' . self::MIN_BERAT_KG,
+        ], [
+            'berat_kg.min' => 'Minimal order adalah ' . self::MIN_BERAT_KG . ' kg.',
+        ]);
+
         $idOutlet  = session('id_outlet');
         $idUser    = session('id');
         $nama      = $request->nama_pelanggan;

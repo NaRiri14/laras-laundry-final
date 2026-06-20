@@ -32,6 +32,19 @@
 
 @section('content')
 
+@if(session('error'))
+<div id="toast-error" style="position:fixed; top:20px; right:20px; background:#ef4444; color:#fff; padding:12px 20px; border-radius:10px; font-weight:bold; font-size:13px; z-index:9999; box-shadow:0 4px 15px rgba(239,68,68,0.3);">
+    ❌ {{ session('error') }}
+</div>
+<script>
+    setTimeout(() => {
+        document.getElementById('toast-error').style.opacity = '0';
+        document.getElementById('toast-error').style.transition = 'opacity 0.5s';
+        setTimeout(() => document.getElementById('toast-error').remove(), 500);
+    }, 3500);
+</script>
+@endif
+
 @if(session('success'))
 <div id="toast" style="position:fixed; top:20px; right:20px; background:#00d4aa; color:#0d1117; padding:12px 20px; border-radius:10px; font-weight:bold; font-size:13px; z-index:9999; box-shadow:0 4px 15px rgba(0,212,170,0.3);">
     ✅ {{ session('success') }}

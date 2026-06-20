@@ -4,9 +4,12 @@
 @push('styles')
 <style>
     .main-wrapper { margin-left:260px; padding:25px; color:white; }
-    .box-card { background:#161b22; border:1px solid #30363d; padding:20px; border-radius:12px; margin-bottom:20px; }
+    .box-card { background:#161b22; border:1px solid #30363d; padding:20px; border-radius:12px; margin-bottom:20px; min-width:0; }
     .item-transaksi { background:#0d1117; padding:15px; border-radius:10px; border-left:4px solid #00d4aa; display:flex; justify-content:space-between; align-items:center; }
-    .grid-header { display:grid; grid-template-columns:repeat(4,1fr); gap:15px; margin-bottom:20px; }
+    .grid-header { display:grid; grid-template-columns:repeat(5,1fr); gap:15px; margin-bottom:20px; }
+    .nilai-box { color:#00d4aa; font-size:clamp(13px,3.5vw,18px); font-weight:bold; margin-top:8px; line-height:1.25; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .jatah-bar { height:8px; border-radius:10px; background:#0d1117; overflow:hidden; margin-top:10px; }
+    .jatah-bar-fill { height:100%; border-radius:10px; transition:width 0.5s; }
     .grid-tengah { display:grid; grid-template-columns:1.5fr 1fr; gap:20px; margin-bottom:20px; }
     .container-transaksi { display:grid; grid-template-columns:1fr 1fr; gap:15px; margin-top:15px; }
 
@@ -16,6 +19,7 @@
         .grid-tengah { grid-template-columns:1fr !important; }
         .container-transaksi { grid-template-columns:1fr !important; }
         .box-card { padding:12px !important; margin-bottom:8px !important; }
+        .nilai-box { font-size:18px !important; white-space:normal !important; }
         .item-transaksi { flex-direction:column; align-items:flex-start; gap:5px; }
     }
 </style>
@@ -39,19 +43,38 @@
     <div class="grid-header">
         <div class="box-card">
             <small style="color:#8b949e;font-size:11px;">ORDER</small>
-            <div style="color:#00d4aa;font-size:22px;font-weight:bold;margin-top:8px;">{{ $totalOrder }}</div>
+            <div class="nilai-box">{{ $totalOrder }}</div>
         </div>
         <div class="box-card">
             <small style="color:#8b949e;font-size:11px;">MASUK</small>
-            <div style="color:#00d4aa;font-size:18px;font-weight:bold;margin-top:8px;">Rp {{ number_format($pemasukan,0,',','.') }}</div>
+            <div class="nilai-box">Rp {{ number_format($pemasukan,0,',','.') }}</div>
         </div>
         <div class="box-card">
             <small style="color:#8b949e;font-size:11px;">KELUAR</small>
-            <div style="color:#ef4444;font-size:18px;font-weight:bold;margin-top:8px;">Rp {{ number_format($pengeluaran,0,',','.') }}</div>
+            <div class="nilai-box" style="color:#ef4444;">Rp {{ number_format($pengeluaran,0,',','.') }}</div>
         </div>
         <div class="box-card">
-            <small style="color:#8b949e;font-size:11px;">KAS BERSIH</small>
-            <div style="color:#00d4aa;font-size:18px;font-weight:bold;margin-top:8px;">Rp {{ number_format($kasBersih,0,',','.') }}</div>
+            <small style="color:#8b949e;font-size:11px;">LABA BERSIH</small>
+            <div class="nilai-box" style="color:{{ $labaBersih >= 0 ? '#00d4aa' : '#ef4444' }};">Rp {{ number_format($labaBersih,0,',','.') }}</div>
+        </div>
+        <div class="box-card" style="border-left:3px solid {{ $sisaJatah >= 0 ? '#3b82f6' : '#ef4444' }};">
+            <small style="color:#8b949e;font-size:11px;">SISA JATAH MINGGU INI</small>
+            <div class="nilai-box" style="color:{{ $sisaJatah >= 0 ? '#3b82f6' : '#ef4444' }};">
+                Rp {{ number_format(abs($sisaJatah),0,',','.') }}
+                @if($sisaJatah < 0) <span style="font-size:10px;">⚠️</span> @endif
+            </div>
+            @if($sisaJatah < 0)
+            <div style="color:#ef4444;font-size:10px;margin-top:4px;font-weight:bold;">
+                Melebihi Rp {{ number_format(abs($sisaJatah),0,',','.') }}
+            </div>
+            @endif
+            @php
+                $persenJatahDash = $jatahTotal > 0 ? min(100, ($pengeluaranMingguIni / $jatahTotal) * 100) : 0;
+                $warnaBarDash = $persenJatahDash >= 100 ? '#ef4444' : ($persenJatahDash >= 75 ? '#ff9f43' : '#3b82f6');
+            @endphp
+            <div class="jatah-bar">
+                <div class="jatah-bar-fill" style="width:{{ $persenJatahDash }}%; background:{{ $warnaBarDash }};"></div>
+            </div>
         </div>
     </div>
 

@@ -7,12 +7,17 @@
         body { font-family:'Segoe UI', Tahoma, sans-serif; color:#333; margin:0; background:#fff; padding:20px; }
         .header { text-align:center; border-bottom:2px solid #000; padding-bottom:10px; margin-bottom:20px; }
         .header h1 { margin:0; font-size:24px; }
-        table { width:100%; border-collapse:collapse; margin-bottom:20px; }
-        th, td { border:1px solid #999; padding:8px; text-align:left; font-size:12px; }
-        th { background:#f2f2f2; text-transform:uppercase; }
-        .total-row { font-weight:bold; background:#eee; }
-        .box-laba { background:#f9f9f9; padding:15px; border:1px solid #ccc; width:300px; margin-left:auto; border-radius:5px; }
-        .tanda-tangan { text-align:center; width:250px; float:right; margin-top:30px; }
+        .box-ringkasan { background:#f9f9f9; padding:20px; border:1px solid #ccc; border-radius:5px; max-width:350px; margin:30px auto; }
+        .box-ringkasan table { width:100%; border-collapse:collapse; }
+        .box-ringkasan td { padding:8px 5px; font-size:14px; border:none; }
+        .box-ringkasan .laba { font-size:18px; font-weight:bold; color:green; border-top:2px solid #333; padding-top:10px; }
+        .box-detail { max-width:400px; margin:20px auto; border:1px solid #ccc; border-radius:5px; padding:15px 20px; }
+        .box-detail h3 { text-align:center; margin-top:0; font-size:15px; }
+        .box-detail table { width:100%; border-collapse:collapse; font-size:13px; }
+        .box-detail td { padding:5px 3px; border-bottom:1px solid #eee; }
+        .box-detail .total-row td { border-top:2px solid #333; border-bottom:none; font-weight:bold; padding-top:8px; }
+        .empty-note { text-align:center; color:#888; font-size:13px; font-style:italic; }
+        .tanda-tangan { text-align:center; width:250px; margin:40px auto 0 auto; }
     </style>
 </head>
 <body id="halaman-laporan">
@@ -24,55 +29,92 @@
         <small><b>{{ strtoupper($judulPeriode) }}</b></small>
     </div>
 
-    <h3>A. Rincian Pemasukan</h3>
-    <table>
-        <thead>
-            <tr><th>No</th><th>Tanggal</th><th>Pelanggan</th><th>Layanan</th><th>Total Bayar</th></tr>
-        </thead>
-        <tbody>
-            @foreach($transaksiList as $no => $t)
+    <div class="box-ringkasan">
+        <h3 style="text-align:center; margin-top:0;">Ringkasan Laporan</h3>
+        <table>
             <tr>
-                <td>{{ $no + 1 }}</td>
-                <td>{{ \Carbon\Carbon::parse($t->tgl_masuk)->format('d/m/Y') }}</td>
-                <td>{{ $t->pelanggan->nama_pelanggan ?? '-' }}</td>
-                <td>{{ $t->layanan->nama_layanan ?? '-' }}</td>
-                <td>Rp {{ number_format($t->total_bayar, 0, ',', '.') }}</td>
+                <td>Total Transaksi</td>
+                <td align="right"><b>{{ $transaksiList->count() }} order</b></td>
             </tr>
-            @endforeach
-            <tr class="total-row">
-                <td colspan="4" align="right">TOTAL PEMASUKAN</td>
-                <td>Rp {{ number_format($totalIn, 0, ',', '.') }}</td>
-            </tr>
-        </tbody>
-    </table>
-
-    <h3>B. Rincian Pengeluaran</h3>
-    <table>
-        <thead>
-            <tr><th>No</th><th>Tanggal</th><th>Keterangan</th><th>Jumlah</th></tr>
-        </thead>
-        <tbody>
-            @foreach($pengeluaranList as $no => $p)
             <tr>
-                <td>{{ $no + 1 }}</td>
-                <td>{{ \Carbon\Carbon::parse($p->tgl_pengeluaran)->format('d/m/Y') }}</td>
-                <td>{{ $p->keterangan }}</td>
-                <td>Rp {{ number_format($p->jumlah, 0, ',', '.') }}</td>
+                <td>Total Berat</td>
+                <td align="right"><b>{{ number_format($transaksiList->sum('berat_kg'), 1, ',', '.') }} kg</b></td>
             </tr>
-            @endforeach
-            <tr class="total-row">
-                <td colspan="3" align="right">TOTAL PENGELUARAN</td>
-                <td>Rp {{ number_format($totalOut, 0, ',', '.') }}</td>
+            <tr>
+                <td>Total Pemasukan</td>
+                <td align="right"><b>Rp {{ number_format($totalIn, 0, ',', '.') }}</b></td>
             </tr>
-        </tbody>
-    </table>
-
-    <div class="box-laba">
-        <table style="border:none; margin:0; width:100%;">
-            <tr style="border:none;"><td style="border:none;">Total Pemasukan</td><td style="border:none; text-align:right;">Rp {{ number_format($totalIn, 0, ',', '.') }}</td></tr>
-            <tr style="border:none;"><td style="border:none;">Total Pengeluaran</td><td style="border:none; text-align:right; color:red;">- Rp {{ number_format($totalOut, 0, ',', '.') }}</td></tr>
-            <tr style="border:none; border-top:2px solid #333; font-weight:bold;"><td style="border:none;">LABA BERSIH</td><td style="border:none; text-align:right; color:green;">Rp {{ number_format($labaBersih, 0, ',', '.') }}</td></tr>
+            <tr>
+                <td>Total Pengeluaran</td>
+                <td align="right"><b>Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</b></td>
+            </tr>
+            <tr class="laba">
+                <td>Laba Bersih</td>
+                <td align="right">Rp {{ number_format($labaBersih, 0, ',', '.') }}</td>
+            </tr>
         </table>
+    </div>
+
+    <div class="box-detail">
+        <h3>Riwayat Singkat Layanan</h3>
+        @if($riwayatLayanan->count())
+            <table>
+                @foreach($riwayatLayanan as $namaLayanan => $jumlah)
+                    <tr>
+                        <td>{{ $namaLayanan }}</td>
+                        <td align="right">{{ $jumlah }}x</td>
+                    </tr>
+                @endforeach
+            </table>
+        @else
+            <p class="empty-note">Tidak ada transaksi pada periode ini.</p>
+        @endif
+    </div>
+
+    <div class="box-detail">
+        <h3>Rincian Pengeluaran</h3>
+        @if($pengeluaranList->count())
+            <table>
+                @foreach($pengeluaranList as $pengeluaran)
+                    <tr>
+                        <td>
+                            {{ \Carbon\Carbon::parse($pengeluaran->tgl_pengeluaran)->format('d/m/Y') }}
+                            - {{ $pengeluaran->keterangan }}
+                        </td>
+                        <td align="right">Rp {{ number_format($pengeluaran->jumlah, 0, ',', '.') }}</td>
+                    </tr>
+                @endforeach
+                <tr class="total-row">
+                    <td>Total Pengeluaran</td>
+                    <td align="right">Rp {{ number_format($totalPengeluaran, 0, ',', '.') }}</td>
+                </tr>
+            </table>
+        @else
+            <p class="empty-note">Tidak ada pengeluaran pada periode ini.</p>
+        @endif
+    </div>
+
+    <div class="box-detail">
+        <h3>Riwayat Jatah Operasional per Minggu</h3>
+        <table>
+            <tr style="background:#f0f0f0; font-weight:bold; font-size:12px;">
+                <td>Periode Minggu</td>
+                <td align="right">Jatah</td>
+                <td align="right">Terpakai</td>
+                <td align="right">Sisa / Lebih</td>
+            </tr>
+            @foreach($riwayatJatah as $r)
+            <tr>
+                <td style="font-size:12px;">{{ $r['label'] }}</td>
+                <td align="right" style="font-size:12px;">Rp {{ number_format($r['jatah'], 0, ',', '.') }}</td>
+                <td align="right" style="font-size:12px;">Rp {{ number_format($r['pengeluaran'], 0, ',', '.') }}</td>
+                <td align="right" style="font-size:12px; color:{{ $r['sisa'] >= 0 ? 'green' : 'red' }}; font-weight:bold;">
+                    {{ $r['sisa'] >= 0 ? 'Sisa' : 'Lebih' }} Rp {{ number_format(abs($r['sisa']), 0, ',', '.') }}
+                </td>
+            </tr>
+            @endforeach
+        </table>
+        <p style="font-size:11px; color:#888; margin-top:8px;">* Jatah operasional Rp 500.000 per minggu per cabang. Laba bersih hanya berkurang jika pengeluaran melebihi jatah.</p>
     </div>
 
     <div class="tanda-tangan">
@@ -84,8 +126,8 @@
         window.onload = function() {
             const element = document.getElementById('halaman-laporan');
             const opsi = {
-                margin: [10, 10, 10, 10],
-                filename: 'Laporan_Laundry_{{ Carbon\Carbon::now()->format("dmY") }}.pdf',
+                margin: [15, 15, 15, 15],
+                filename: 'Laporan_{{ $outlet->nama_cabang }}_{{ Carbon\Carbon::now()->format("dmY") }}.pdf',
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, logging: false },
                 jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }

@@ -56,15 +56,15 @@
                 <form action="{{ route('kasir.simpan') }}" method="POST">
                     @csrf
 
-                    <label>Nama Pelanggan</label>
-                    <input type="text" name="nama_pelanggan" id="nama_pelanggan"
-                        placeholder="Nama..." class="form-box" required>
+                    <label>No. HP</label>
+                    <input type="text" name="no_hp" id="no_hp"
+                        placeholder="08..." class="form-box" onkeyup="cekPelanggan()" required>
 
                     <div class="row-flex" style="display:flex;gap:15px;">
                         <div style="flex:1;">
-                            <label>No. HP</label>
-                            <input type="text" name="no_hp" id="no_hp"
-                                placeholder="08..." class="form-box" onkeyup="cekPelanggan()">
+                            <label>Nama Pelanggan</label>
+                            <input type="text" name="nama_pelanggan" id="nama_pelanggan"
+                                placeholder="Nama..." class="form-box" required>
                         </div>
                         <div style="flex:1;">
                             <label>Layanan</label>
@@ -80,9 +80,9 @@
                     </div>
 
                     <div style="width:50%;">
-                        <label>Berat (kg)</label>
+                        <label>Berat (kg) <span style="color:#8b949e;font-size:10px;">(min. 1 kg)</span></label>
                         <input type="number" name="berat_kg" id="berat"
-                            value="0" min="0.1" step="0.1" required oninput="hitung()" class="form-box">
+                            value="1" min="1" step="0.1" required oninput="hitung()" class="form-box">
                     </div>
 
                     <div class="box-total">
