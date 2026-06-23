@@ -105,8 +105,8 @@
                     </div>
 
                     <label>Catatan</label>
-                    <input type="text" name="catatan"
-                        placeholder="Tambahkan catatan jika ada..." class="form-box">
+                    <textarea name="catatan" rows="4"
+                        placeholder="Tambahkan catatan jika ada..." class="form-box" style="resize:vertical;"></textarea>
 
                     <button type="submit" style="width:100%;background:#00d4aa;color:#0d1117;padding:12px;border-radius:8px;border:none;font-weight:bold;cursor:pointer;margin-top:10px;font-size:14px;">
                         💾 Simpan & Cetak
